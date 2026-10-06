@@ -4,3 +4,5 @@ client/dist/
 .env
 *.log
 .env.example
+*.svg
+*.png
