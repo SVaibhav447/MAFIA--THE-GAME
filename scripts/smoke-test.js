@@ -61,6 +61,7 @@ try {
   if (latestRoom.players.some((player) => player.role)) {
     throw new Error('A private role was exposed in the public room update')
   }
+  const rolesHiddenDuringGame = latestRoom.players.every((player) => !player.role)
 
   const roleById = new Map([...roles].map(([socket, role]) => [playerIds[players.indexOf(socket)], role]))
   const mafiaId = playerIds.find((id) => roleById.get(id) === 'mafia')
@@ -94,14 +95,42 @@ try {
     throw new Error('An eliminated player was allowed to chat')
   }
 
+  const livingIds = latestRoom.players.filter((player) => player.alive).map((player) => player.id)
+  for (const playerId of livingIds) {
+    const result = await emit(players[playerIds.indexOf(playerId)], 'phase:skip-to-vote', { code, playerId })
+    if (result.error) throw new Error(result.error)
+  }
+  await waitFor(() => latestRoom.phase === 'voting', 'unanimous skip to voting')
+  const votingSeconds = Math.floor((latestRoom.deadline - Date.now()) / 1000)
+  if (votingSeconds < 38) throw new Error(`Expected a 40-second vote phase, received ${votingSeconds} seconds`)
+
+  const voterId = livingIds.find((id) => roleById.get(id) === 'villager' && id !== victimId)
+  for (const playerId of livingIds) {
+    const result = await emit(players[playerIds.indexOf(playerId)], 'game:vote', {
+      code,
+      playerId,
+      targetId: playerId === voterId ? mafiaId : null,
+    })
+    if (result.error) throw new Error(result.error)
+  }
+  await waitFor(() => latestRoom.status === 'ended', 'cast-vote majority resolution')
+  const mafiaEliminated = !latestRoom.players.find((player) => player.id === mafiaId)?.alive
+  if (latestRoom.winner !== 'town' || !mafiaEliminated) {
+    throw new Error('A lone cast vote was not counted against the abstentions')
+  }
+
   console.log(JSON.stringify({
     room: code,
     players: latestRoom.players.length,
     roles: [...roles.values()].sort(),
     nextPhase: latestRoom.phase,
-    publicRolesHidden: latestRoom.players.every((player) => !player.role),
+    rolesHiddenDuringGame,
+    rolesRevealedAtEnd: latestRoom.players.every((player) => Boolean(player.role)),
     doctorCanProtectSelf: doctorSurvived,
     eliminatedChatBlocked: true,
+    unanimousSkipReachedVoting: true,
+    votingSeconds,
+    singleCastVoteBeatAbstentions: mafiaEliminated,
   }, null, 2))
 } finally {
   sockets.forEach((socket) => socket.disconnect())

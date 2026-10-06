@@ -9,7 +9,7 @@ import Game from './models/Game.js'
 
 const app = express()
 const server = http.createServer(app)
-const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173' || 'https://mafia-the-game.onrender.com'
+const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173'
 const io = new Server(server, { cors: { origin: allowedOrigin, methods: ['GET', 'POST'] } })
 const rooms = new Map()
 const PORT = Number(process.env.PORT) || 3001
@@ -42,6 +42,7 @@ function serializeRoom(room) {
     deadline: room.deadline,
     hostId: room.hostId,
     winner: room.winner,
+    skipVoteIds: [...room.skipVotes],
     players: room.players.map(({ id, name, alive, connected, ready, role }) => ({
       id, name, alive, connected, ready,
       ...(room.status === 'ended' ? { role } : {}),
@@ -97,6 +98,7 @@ function openPhase(room, phase, seconds) {
   room.deadline = Date.now() + seconds * 1000
   room.actions.clear()
   room.votes.clear()
+  room.skipVotes.clear()
   addLog(room, phase === 'night'
     ? `Night ${room.round} settles over the town. Curtains close; somewhere in the dark, someone makes a choice.`
     : phase === 'day'
@@ -164,15 +166,17 @@ function resolveNight(room) {
 
 function resolveVote(room) {
   const counts = new Map()
-  room.votes.forEach((targetId) => counts.set(targetId, (counts.get(targetId) || 0) + 1))
+  const castVotes = [...room.votes.values()].filter((targetId) => targetId !== null)
+  castVotes.forEach((targetId) => counts.set(targetId, (counts.get(targetId) || 0) + 1))
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
-  const eliminatedId = sorted.length && sorted[0][1] !== sorted[1]?.[1] ? sorted[0][0] : null
+  const hasMajority = sorted.length > 0 && sorted[0][1] > castVotes.length / 2
+  const eliminatedId = hasMajority ? sorted[0][0] : null
   const eliminated = room.players.find((player) => player.id === eliminatedId && player.alive)
   if (eliminated) {
     eliminated.alive = false
     addLog(room, `${eliminated.name} was voted out. They were ${roleLabels[eliminated.role]}.`)
-  } else if (!sorted.length || sorted[0][0] === null) addLog(room, 'The town chose to abstain. No one was put on trial.')
-  else addLog(room, 'The vote was tied. Nobody was eliminated.')
+  } else if (castVotes.length === 0) addLog(room, 'The town chose to abstain. No one was put on trial.')
+  else addLog(room, 'No player received a majority. Nobody was eliminated.')
   const winner = checkWinner(room)
   if (winner) return finishGame(room, winner)
   openPhase(room, 'night', 40)
@@ -181,7 +185,7 @@ function resolveVote(room) {
 function advancePhase(room) {
   if (room.status !== 'active') return
   if (room.phase === 'night') resolveNight(room)
-  else if (room.phase === 'day') openPhase(room, 'voting', 30)
+  else if (room.phase === 'day') openPhase(room, 'voting', 40)
   else if (room.phase === 'voting') resolveVote(room)
 }
 
@@ -199,7 +203,7 @@ io.on('connection', (socket) => {
     const room = {
       code, status: 'lobby', phase: 'lobby', round: 0, deadline: null, hostId,
       players: [{ id: hostId, socketId: socket.id, name: playerName, alive: true, connected: true, ready: false, role: null }],
-      log: [], actions: new Map(), votes: new Map(), timer: null,
+      log: [], actions: new Map(), votes: new Map(), skipVotes: new Set(), timer: null,
     }
     rooms.set(code, room)
     socket.join(roomChannel(code))
@@ -262,6 +266,18 @@ io.on('connection', (socket) => {
     if (room.players.length < 4) return acknowledge(callback, { error: 'You need at least 4 players to begin.' })
     startGame(room)
     acknowledge(callback, { ok: true })
+  })
+
+  socket.on('phase:skip-to-vote', ({ code, playerId } = {}, callback) => {
+    const room = rooms.get(String(code || '').toUpperCase())
+    const player = room?.players.find((item) => item.id === playerId)
+    if (!room || room.status !== 'active' || room.phase !== 'day') return acknowledge(callback, { error: 'Discussion is not open.' })
+    if (!player?.alive) return acknowledge(callback, { error: 'Only living players can skip discussion.' })
+    room.skipVotes.add(player.id)
+    acknowledge(callback, { ok: true })
+    const eligible = alivePlayers(room).filter((item) => item.connected)
+    publishRoom(room)
+    if (eligible.length > 0 && eligible.every((item) => room.skipVotes.has(item.id))) openPhase(room, 'voting', 40)
   })
 
   socket.on('game:action', ({ code, playerId, targetId } = {}, callback) => {

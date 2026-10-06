@@ -41,6 +41,7 @@ function App() {
   const seenNarrationRef = useRef(new Set())
   const roomRef = useRef(null)
   const chatEndRef = useRef(null)
+  const chronicleRef = useRef(null)
 
   useEffect(() => {
     const socket = io(import.meta.env.VITE_SERVER_URL || undefined)
@@ -57,7 +58,9 @@ function App() {
     })
     socket.on('disconnect', () => setConnected(false))
     socket.on('room:update', (nextRoom) => {
-      const isRejoiningActiveGame = roomRef.current === null && nextRoom.status === 'active'
+      const previousRoom = roomRef.current
+      const isRejoiningActiveGame = previousRoom === null && nextRoom.status === 'active'
+      if (previousRoom && (previousRoom.phase !== nextRoom.phase || previousRoom.round !== nextRoom.round)) setSelectedTarget('')
       roomRef.current = nextRoom
       setRoom(nextRoom)
       if (nextRoom.status === 'lobby') return
@@ -96,6 +99,12 @@ function App() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [messages])
+
+  useEffect(() => {
+    if (!currentNarration) return
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    chronicleRef.current?.scrollIntoView({ behavior, block: 'center' })
+  }, [currentNarration])
 
   const currentPlayer = room?.players.find((player) => player.id === playerId)
   const isHost = room?.hostId === playerId
@@ -153,7 +162,10 @@ function App() {
   function castVote(targetId = selectedTarget) {
     socketRef.current.emit('game:vote', { code: room.code, playerId, targetId: targetId || null }, (result) => {
       if (result?.error) setError(result.error)
-      else setError(targetId ? 'Vote recorded. The town is waiting for everyone.' : 'You abstained. The town is waiting for everyone.')
+      else {
+        setSelectedTarget('')
+        setError(targetId ? 'Vote recorded. The town is waiting for everyone.' : 'You abstained. The town is waiting for everyone.')
+      }
     })
   }
 
@@ -191,10 +203,14 @@ function App() {
   const canActAtNight = room?.phase === 'night' && currentPlayer?.alive && ['mafia', 'doctor', 'detective'].includes(role?.role)
   const canVote = room?.phase === 'voting' && currentPlayer?.alive
   const canChat = (room?.status !== 'active' || currentPlayer?.alive) && (room?.phase !== 'night' || role?.role === 'mafia')
-  const isDayTheme = room?.status === 'active' && ['day', 'voting'].includes(room.phase)
+  const isDayTheme = room?.status === 'active' && room.phase === 'day'
+  const isVotingTheme = room?.status === 'active' && room.phase === 'voting'
+  const connectedLivingCount = room?.players.filter((player) => player.alive && player.connected).length || 0
+  const skipVoteCount = room?.skipVoteIds?.length || 0
+  const hasSkippedDiscussion = room?.skipVoteIds?.includes(playerId) || false
 
   return (
-    <main className={`app-shell ${isDayTheme ? 'theme-day' : 'theme-night'}`}>
+    <main className={`app-shell ${isVotingTheme ? 'theme-night theme-voting' : isDayTheme ? 'theme-day' : 'theme-night'}`}>
       <header className="topbar">
         <a className="brand" href="#home" onClick={(event) => { event.preventDefault(); returnHome() }}>
           <span className="brand-mark"><Skull size={17} /></span>
@@ -262,7 +278,7 @@ function App() {
           </div>
           <div className="game-heading">
             <div><div className="eyebrow"><span className="eyebrow-line" />{room.status === 'lobby' ? 'THE GATHERING' : `NIGHT ${room.round || 1} · ${room.phase?.toUpperCase()}`}</div><h1>{room.status === 'lobby' ? 'Gather your people.' : room.status === 'ended' ? 'The truth is out.' : room.phase === 'night' ? 'Keep your eyes open.' : room.phase === 'voting' ? 'Make your choice.' : 'Talk while you can.'}</h1></div>
-            {room.status === 'active' && <div className={`phase-clock ${room.phase === 'night' ? 'night-clock' : ''}`}><span>{room.phase === 'night' ? <Moon size={16} /> : <Sun size={16} />}{room.phase?.toUpperCase()}</span><strong>{String(Math.floor((secondsLeft || 0) / 60)).padStart(2, '0')}:{String((secondsLeft || 0) % 60).padStart(2, '0')}</strong></div>}
+            {room.status === 'active' && <div className={`phase-clock ${room.phase === 'night' ? 'night-clock' : room.phase === 'voting' ? 'voting-clock' : ''}`}><span>{room.phase === 'night' ? <Moon size={16} /> : room.phase === 'voting' ? <Fingerprint size={16} /> : <Sun size={16} />}{room.phase?.toUpperCase()}</span><strong>{String(Math.floor((secondsLeft || 0) / 60)).padStart(2, '0')}:{String((secondsLeft || 0) % 60).padStart(2, '0')}</strong></div>}
           </div>
           <div className="table-layout">
             <section className="table-main">
@@ -294,8 +310,8 @@ function App() {
                   {investigation && <div className={`investigation-banner ${investigation.isMafia ? 'found' : ''}`}><Eye size={17} /><span><strong>{investigation.targetName}</strong> is {investigation.isMafia ? 'Mafia.' : 'not Mafia.'}</span><button type="button" onClick={() => setInvestigation(null)}>×</button></div>}
                   {room.status === 'active' && <div className="action-panel">
                     <div className="action-heading"><div><span className="section-kicker">{room.phase === 'night' ? 'THE TOWN IS ASLEEP' : room.phase === 'voting' ? 'THE TOWN HAS THE FLOOR' : 'THE TOWN IS AWAKE'}</span><h2>{canActAtNight ? role?.role === 'mafia' ? 'Choose your target.' : role?.role === 'doctor' ? 'Who will you protect?' : 'Who seems suspicious?' : canVote ? 'Who do you trust least?' : room.phase === 'night' ? 'Wait for morning.' : room.phase === 'voting' ? 'Waiting on the town.' : 'The floor is open.'}</h2></div>{room.phase === 'night' ? <Moon className="phase-ornament" size={21} /> : room.phase === 'voting' ? <Fingerprint className="phase-ornament" size={21} /> : <Sun className="phase-ornament" size={21} />}</div>
-                    {(canActAtNight || canVote) && <><div className="target-list">{room.players.filter((player) => player.alive && (player.id !== playerId || (canActAtNight && role?.role === 'doctor'))).map((player, index) => <button className={`target-row ${selectedTarget === player.id ? 'selected' : ''}`} type="button" key={player.id} onClick={() => setSelectedTarget(player.id)}><span className={`mini-avatar avatar-${index % 6}`}>{player.name.slice(0, 1).toUpperCase()}</span><span className="target-name">{player.id === playerId ? `${player.name} (you)` : player.name}</span>{room.phase === 'voting' && <span className="target-status">CAST VOTE</span>}{selectedTarget === player.id && <Check className="target-check" size={16} />}</button>)}</div><button className="primary-button action-submit" type="button" disabled={!selectedTarget} onClick={canVote ? castVote : sendNightAction}><span>{canVote ? 'Lock in vote' : role?.role === 'doctor' ? 'Protect player' : role?.role === 'detective' ? 'Investigate player' : 'Choose for tonight'}</span><ChevronRight size={17} /></button>{canVote && <button className="abstain-button" type="button" onClick={() => castVote(null)}><SkipForward size={15} /> Abstain this round</button>}</>}
-                    {room.phase === 'day' && <div className="day-note"><Sun size={16} /><span>Share what you know. Voting begins when the clock runs out.</span></div>}
+                    {(canActAtNight || canVote) && <><div className="target-list">{room.players.filter((player) => player.alive && (player.id !== playerId || (canActAtNight && role?.role === 'doctor'))).map((player, index) => <button className={`target-row ${selectedTarget === player.id ? 'selected' : ''}`} type="button" key={player.id} onClick={() => setSelectedTarget(player.id)}><span className={`mini-avatar avatar-${index % 6}`}>{player.name.slice(0, 1).toUpperCase()}</span><span className="target-name">{player.id === playerId ? `${player.name} (you)` : player.name}</span>{room.phase === 'voting' && <span className="target-status">CAST VOTE</span>}{selectedTarget === player.id && <Check className="target-check" size={16} />}</button>)}</div><button className="primary-button action-submit" type="button" disabled={!selectedTarget} onClick={() => (canVote ? castVote() : sendNightAction())}><span>{canVote ? 'Lock in vote' : role?.role === 'doctor' ? 'Protect player' : role?.role === 'detective' ? 'Investigate player' : 'Choose for tonight'}</span><ChevronRight size={17} /></button>{canVote && <button className="abstain-button" type="button" onClick={() => castVote(null)}><SkipForward size={15} /> Abstain this round</button>}</>}
+                    {room.phase === 'day' && <div className="day-actions"><div className="day-note"><Sun size={16} /><span>Share what you know. Voting begins when the clock runs out, unless everyone is ready sooner.</span></div><button className={`skip-discussion-button ${hasSkippedDiscussion ? 'is-ready' : ''}`} type="button" disabled={hasSkippedDiscussion || !currentPlayer?.alive} onClick={() => socketRef.current.emit('phase:skip-to-vote', { code: room.code, playerId }, (result) => result?.error && setError(result.error))}><SkipForward size={15} /><span>{hasSkippedDiscussion ? 'Ready to vote' : 'Skip discussion'}</span><small>{skipVoteCount}/{connectedLivingCount} ready</small></button></div>}
                     {!currentPlayer?.alive && room.status === 'active' && <div className="day-note"><Skull size={16} /><span>You’ve been eliminated. Stay and watch the town decide.</span></div>}
                   </div>}
                     </>
@@ -311,7 +327,7 @@ function App() {
               <div className="sidebar-foot"><Shield size={13} /><span>YOUR ROLE IS PRIVATE. KEEP IT THAT WAY.</span></div>
             </aside>
           </div>
-          {room.status !== 'lobby' && <section className="chronicle-panel" aria-live="polite" aria-relevant="additions">
+          {room.status !== 'lobby' && <section className="chronicle-panel" ref={chronicleRef} aria-live="polite" aria-relevant="additions">
             <div className="chronicle-heading"><div><span>{currentNarration ? 'NARRATOR · LIVE CHRONICLE' : 'TOWN RECORD'}</span><h2>The story so far</h2></div><span>ROUND {room.round || 1}</span></div>
             <div className="chronicle-list">{currentNarration ? <article className="chronicle-entry is-current" key={currentNarration.id}><span>NARRATING</span><p>{currentNarration.message}</p></article> : completedNarration.length > 0 ? <div className="chronicle-static-log">{completedNarration.slice().reverse().map((item) => <article className="chronicle-static-entry" key={item.id}><time>{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time><p>{item.message}</p></article>)}</div> : <p className="chronicle-waiting">The town is gathering its thoughts.</p>}</div>
           </section>}
