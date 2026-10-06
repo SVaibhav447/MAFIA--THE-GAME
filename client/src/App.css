@@ -117,7 +117,6 @@
 .roster-name small { margin-left: 6px; color: var(--red); font: 8px var(--mono); }
 .roster-row > svg { color: #aaa69c; }
 .roster-row.eliminated { opacity: .43; text-decoration: line-through; }
-.role-reveal { font: 8px var(--mono); color: var(--ink-soft); }.role-reveal.mafia { color: var(--red); }.role-reveal.detective { color: #596f9b; }.role-reveal.doctor { color: var(--green); }
 .chat-panel { min-height: 255px; display: flex; flex-direction: column; }
 .chat-heading { padding-bottom: 12px; }
 .chat-live { display: flex; align-items: center; gap: 7px; color: #72846d; font: 8px var(--mono); }
@@ -159,6 +158,23 @@
 .investigation-banner { color: #4b5c7b; background: #e7e9ee; border-color: #ced2dd; }.investigation-banner.found { color: #883d34; background: #f5e5df; border-color: #e8c9bf; }.investigation-banner button { margin-left: auto; border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 19px; }
 .inline-notice { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-top: 12px; padding: 10px 12px; background: #eee8da; color: #686451; font-size: 10px; line-height: 1.45; }.inline-notice button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 17px; }
 .play-again { margin-top: 16px; }
+.endgame-reveal { padding: 18px 0 4px; animation: reveal-arrive .5s ease both; }
+.endgame-reveal .winner-banner { min-height: 48px; padding-inline: 16px; font: 500 16px var(--serif); }
+.reveal-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 23px 1px 14px; }
+.reveal-heading > div > span { color: #999587; font: 9px var(--mono); }
+.reveal-heading h2 { margin: 5px 0 0; color: var(--ink); font: 500 25px/1.2 var(--serif); }
+.reveal-heading > svg { color: var(--gold); }
+.reveal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.reveal-card { min-width: 0; min-height: 71px; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid #3a3f35; background: #20241f; animation: reveal-arrive .38s ease both; }
+.reveal-card.eliminated { background: #191d19; }
+.reveal-avatar { width: 36px; height: 36px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; }
+.reveal-player-copy { min-width: 0; flex: 1; }
+.reveal-player-copy strong { display: flex; align-items: center; gap: 7px; overflow: hidden; color: #eee7d9; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.reveal-role { display: inline-block; margin-top: 4px; color: #c3bdaf; font: 9px var(--mono); }
+.reveal-card.role-mafia .reveal-role { color: #e28f80; }.reveal-card.role-detective .reveal-role { color: #aebce0; }.reveal-card.role-doctor .reveal-role { color: #a9c3a3; }.reveal-card.role-villager .reveal-role { color: #d5bd8f; }
+.reveal-status { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; color: #9eaa98; font: 8px var(--mono); }
+.reveal-card.eliminated .reveal-status { color: #bd8277; }
+@keyframes reveal-arrive { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 @media (min-width: 1200px) { .landing { min-height: 660px; } }
 @media (max-width: 760px) {
   .topbar { height: 58px; padding-inline: 20px; }
@@ -205,6 +221,8 @@
   .target-status { display: none; }
   .role-banner { align-items: flex-start; padding: 11px; }.role-banner small { font-size: 9px; }
   .winner-banner { flex-wrap: wrap; }.winner-banner > span { margin-left: 27px; }
+  .reveal-grid { grid-template-columns: 1fr; }
+  .reveal-status { font-size: 7px; }
 }
 
 .app-shell { transition: background-color .35s ease, color .35s ease; }

@@ -259,7 +259,21 @@ function App() {
                 </div>
               ) : (
                 <>
-                  {room.status === 'ended' && <div className={`winner-banner ${room.winner}`}><Sparkles size={19} /><strong>{room.winner === 'town' ? 'The town wins.' : 'The Mafia wins.'}</strong><span>Roles have been revealed.</span></div>}
+                  {room.status === 'ended' ? (
+                    <section className="endgame-reveal">
+                      <div className={`winner-banner ${room.winner}`}><Sparkles size={19} /><strong>{room.winner === 'town' ? 'The town wins.' : 'The Mafia wins.'}</strong><span>Every secret is out.</span></div>
+                      <div className="reveal-heading"><div><span>THE MASKS COME OFF · {room.players.length} PLAYERS</span><h2>Every face, unmasked.</h2></div><Skull size={23} /></div>
+                      <div className="reveal-grid">{room.players.map((player, index) => {
+                        const RevealRoleIcon = roleMeta[player.role]?.icon || Fingerprint
+                        return <article className={`reveal-card role-${player.role} ${player.alive ? 'survived' : 'eliminated'}`} key={player.id} style={{ animationDelay: `${index * 55}ms` }}>
+                          <span className={`reveal-avatar avatar-${index % 6}`}><RevealRoleIcon size={18} /></span>
+                          <div className="reveal-player-copy"><strong>{player.name}{player.id === playerId && <span className="you-tag">YOU</span>}</strong><span className="reveal-role">{roleMeta[player.role]?.label || 'Unknown'}</span></div>
+                          <span className="reveal-status">{player.alive ? <><Check size={13} /> SURVIVED</> : <><Skull size={13} /> ELIMINATED</>}</span>
+                        </article>
+                      })}</div>
+                    </section>
+                  ) : (
+                    <>
                   {roleInfo && <div className={`role-banner role-${roleInfo.color}`}><div className="role-icon"><RoleIcon size={19} /></div><div><span>YOUR ROLE</span><strong>{roleInfo.label}</strong><small>{roleInfo.description}{allies.length > 0 ? ` Your partner${allies.length > 1 ? 's' : ''}: ${allies.join(', ')}.` : ''}</small></div><span className="role-spark">✳</span></div>}
                   {investigation && <div className={`investigation-banner ${investigation.isMafia ? 'found' : ''}`}><Eye size={17} /><span><strong>{investigation.targetName}</strong> is {investigation.isMafia ? 'Mafia.' : 'not Mafia.'}</span><button type="button" onClick={() => setInvestigation(null)}>×</button></div>}
                   {room.status === 'active' && <div className="action-panel">
@@ -268,13 +282,15 @@ function App() {
                     {room.phase === 'day' && <div className="day-note"><Sun size={16} /><span>Share what you know. Voting begins when the clock runs out.</span></div>}
                     {!currentPlayer?.alive && room.status === 'active' && <div className="day-note"><Skull size={16} /><span>You’ve been eliminated. Stay and watch the town decide.</span></div>}
                   </div>}
+                    </>
+                  )}
                 </>
               )}
               {error && <div className="inline-notice" role="status"><span>{error}</span><button type="button" onClick={() => setError('')}>×</button></div>}
             </section>
 
             <aside className="table-sidebar">
-              <section className="roster-panel"><div className="sidebar-heading"><div><span className="section-kicker">THE PEOPLE</span><h2>Still in town</h2></div><span className="alive-count">{aliveCount}<small>/{room.players.length}</small></span></div><div className="roster-list">{room.players.map((player, index) => <div className={`roster-row ${!player.alive ? 'eliminated' : ''}`} key={player.id}><span className={`mini-avatar avatar-${index % 6}`}>{player.name.slice(0, 1).toUpperCase()}</span><span className="roster-name">{player.name}{player.id === playerId && <small>YOU</small>}</span>{player.role && room.status === 'ended' && <span className={`role-reveal ${player.role}`}>{roleMeta[player.role]?.label}</span>}{!player.alive && room.status !== 'ended' && <Skull size={14} />}</div>)}</div></section>
+              <section className="roster-panel"><div className="sidebar-heading"><div><span className="section-kicker">THE PEOPLE</span><h2>{room.status === 'ended' ? 'Final roster' : 'Still in town'}</h2></div><span className="alive-count">{aliveCount}<small>/{room.players.length}</small></span></div><div className="roster-list">{room.players.map((player, index) => <div className={`roster-row ${!player.alive ? 'eliminated' : ''}`} key={player.id}><span className={`mini-avatar avatar-${index % 6}`}>{player.name.slice(0, 1).toUpperCase()}</span><span className="roster-name">{player.name}{player.id === playerId && <small>YOU</small>}</span>{!player.alive && <Skull size={14} />}</div>)}</div></section>
               <section className="chat-panel"><div className="sidebar-heading chat-heading"><div><span className="section-kicker">{room.phase === 'night' && role?.role === 'mafia' ? 'PRIVATE CHANNEL' : 'TOWN SQUARE'}</span><h2>{room.phase === 'night' && role?.role === 'mafia' ? 'The inner circle' : 'Whispers & rumors'}</h2></div><span className="chat-live"><span />LIVE</span></div><div className="message-list">{messages.filter((message) => message.channel === 'mafia' ? role?.role === 'mafia' : true).map((message) => <div className={`chat-message ${message.playerId === playerId ? 'mine' : ''}`} key={message.id}><span>{message.name}</span><p>{message.message}</p></div>)}{messages.length === 0 && <div className="chat-empty">{canChat ? 'A little quiet around here.' : currentPlayer?.alive ? 'The town is asleep. Keep your voice down.' : 'You have been eliminated.'}</div>}<div ref={chatEndRef} /></div>{canChat ? <form className="chat-form" onSubmit={sendMessage}><input aria-label="Write a message" maxLength={240} placeholder="Say something…" value={draft} onChange={(event) => setDraft(event.target.value)} /><button type="submit" title="Send message" disabled={!draft.trim()}><Send size={15} /></button></form> : <div className="chat-locked"><Skull size={13} /> You have been eliminated</div>}</section>
               <div className="sidebar-foot"><Shield size={13} /><span>YOUR ROLE IS PRIVATE. KEEP IT THAT WAY.</span></div>
             </aside>
