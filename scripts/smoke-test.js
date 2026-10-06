@@ -118,6 +118,11 @@ try {
   if (latestRoom.winner !== 'town' || !mafiaEliminated) {
     throw new Error('A lone cast vote was not counted against the abstentions')
   }
+  const voteReveal = latestRoom.log.filter((entry) => ['vote-out', 'vote-verdict'].includes(entry.type))
+  if (voteReveal.length !== 2 || voteReveal[0].type !== 'vote-out'
+    || voteReveal[1].type !== 'vote-verdict' || voteReveal[1].role !== 'mafia') {
+    throw new Error('The vote-out and role verdict were not emitted as separate ordered events')
+  }
 
   console.log(JSON.stringify({
     room: code,
@@ -131,6 +136,7 @@ try {
     unanimousSkipReachedVoting: true,
     votingSeconds,
     singleCastVoteBeatAbstentions: mafiaEliminated,
+    voteRevealIsStaged: true,
   }, null, 2))
 } finally {
   sockets.forEach((socket) => socket.disconnect())

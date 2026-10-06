@@ -55,8 +55,8 @@ function publishRoom(room) {
   io.to(roomChannel(room.code)).emit('room:update', serializeRoom(room))
 }
 
-function addLog(room, message) {
-  room.log.push({ id: randomBytes(5).toString('hex'), message, time: Date.now() })
+function addLog(room, message, details = {}) {
+  room.log.push({ id: randomBytes(5).toString('hex'), message, time: Date.now(), ...details })
   room.log = room.log.slice(-30)
 }
 
@@ -174,7 +174,8 @@ function resolveVote(room) {
   const eliminated = room.players.find((player) => player.id === eliminatedId && player.alive)
   if (eliminated) {
     eliminated.alive = false
-    addLog(room, `${eliminated.name} was voted out. They were ${roleLabels[eliminated.role]}.`)
+    addLog(room, `${eliminated.name} was voted out.`, { type: 'vote-out' })
+    addLog(room, `They were ${roleLabels[eliminated.role]}.`, { type: 'vote-verdict', role: eliminated.role })
   } else if (castVotes.length === 0) addLog(room, 'The town chose to abstain. No one was put on trial.')
   else addLog(room, 'No player received a majority. Nobody was eliminated.')
   const winner = checkWinner(room)
