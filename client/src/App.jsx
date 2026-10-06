@@ -42,6 +42,7 @@ function App() {
   const roomRef = useRef(null)
   const chatEndRef = useRef(null)
   const chronicleRef = useRef(null)
+  const gamePageRef = useRef(null)
 
   useEffect(() => {
     const socket = io(import.meta.env.VITE_SERVER_URL || undefined)
@@ -122,6 +123,8 @@ function App() {
         const completed = narrationRunRef.current
         narrationRunRef.current = []
         setCompletedNarration(completed)
+        const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+        gamePageRef.current?.scrollIntoView({ behavior, block: 'start' })
       }
     }, 4000)
     return () => window.clearTimeout(timer)
@@ -271,7 +274,7 @@ function App() {
           <div className="landing-bottom"><span>NO TWO NIGHTS END THE SAME.</span><span>EST. AFTER DARK <span className="tiny-star">✳</span></span></div>
         </section>
       ) : (
-        <section className="game-page">
+        <section className="game-page" ref={gamePageRef}>
           <div className="game-toolbar">
             <button className="back-button" type="button" onClick={returnHome}><ArrowLeft size={16} /> Leave table</button>
             <div className="room-share"><span className="room-label">ROOM</span><strong>{room.code}</strong><button className="copy-button" type="button" title="Copy room code" onClick={copyRoomCode}>{copied ? <Check size={15} /> : <Copy size={15} />}</button></div>
@@ -293,6 +296,7 @@ function App() {
                 <>
                   {room.status === 'ended' ? (
                     <section className="endgame-reveal">
+                      <div className={`victory-effects ${room.winner === 'town' ? 'victory-effects-town' : 'victory-effects-mafia'}`} aria-hidden="true">{room.winner === 'town' ? <><span className="firework firework-one" /><span className="firework firework-two" /><span className="firework firework-three" /><span className="parade-confetti confetti-one" /><span className="parade-confetti confetti-two" /><span className="parade-confetti confetti-three" /></> : <><span className="blood-drop drop-one" /><span className="blood-drop drop-two" /><span className="blood-drop drop-three" /><span className="blood-drop drop-four" /></>}</div>
                       <div className={`winner-banner ${room.winner}`}><Sparkles size={19} /><strong>{room.winner === 'town' ? 'The town wins.' : 'The Mafia wins.'}</strong><span>Every secret is out.</span></div>
                       <div className="reveal-heading"><div><span>THE MASKS COME OFF · {room.players.length} PLAYERS</span><h2>Every face, unmasked.</h2></div><Skull size={23} /></div>
                       <div className="reveal-grid">{room.players.map((player, index) => {
