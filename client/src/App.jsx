@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { io } from 'socket.io-client'
 import {
   ArrowLeft, Check, ChevronRight, CircleHelp, Copy, Crown, Eye,
-  Fingerprint, Heart, Moon, Send, Shield, Skull, SkipForward, Sparkles, Sun, Users, Wifi,
+  Fingerprint, Heart, Moon, Send, Shield, Skull, SkipForward, Sparkles, Sun, Users, Wifi, X,
 } from 'lucide-react'
 import './App.css'
 
@@ -18,6 +18,7 @@ const roleMeta = {
 
 function App() {
   const socketRef = useRef(null)
+  const howToPlayDialogRef = useRef(null)
   const [connected, setConnected] = useState(false)
   const [room, setRoom] = useState(null)
   const [playerId, setPlayerId] = useState(savedId)
@@ -202,9 +203,24 @@ function App() {
         <div className="topbar-right">
           <span className={`connection ${connected ? 'is-online' : ''}`}><span className="connection-dot" />{connected ? 'LIVE SERVER' : 'CONNECTING'}</span>
           <span className="topbar-divider" />
-          <button className="icon-button help-button" type="button" title="How to play" onClick={() => setError('Mafia wins by matching or outnumbering the town. The town wins by finding every Mafia member. Roles act at night; everyone votes by day.')}><CircleHelp size={17} /></button>
+          <button className="help-button" type="button" aria-haspopup="dialog" onClick={() => howToPlayDialogRef.current?.showModal()}><CircleHelp size={16} /><span>How to play</span></button>
         </div>
       </header>
+
+      <dialog className="how-to-dialog" ref={howToPlayDialogRef} aria-labelledby="how-to-title" onClick={(event) => { if (event.target === howToPlayDialogRef.current) howToPlayDialogRef.current.close() }}>
+        <div className="how-to-header"><div><span className="section-kicker">MAFIA · FIELD GUIDE</span><h2 id="how-to-title">How to play</h2></div><button className="dialog-close" type="button" aria-label="Close how to play" autoFocus onClick={() => howToPlayDialogRef.current?.close()}><X size={18} /></button></div>
+        <p className="how-to-lede">Keep your role secret. Watch the room. Trust nobody too quickly.</p>
+        <div className="how-to-phases">
+          <article className="how-to-phase"><span>01 · NIGHT</span><Moon size={17} /><h3>Secrets surface</h3><p>Mafia choose someone to eliminate. The Doctor protects a player, and the Detective investigates one person.</p></article>
+          <article className="how-to-phase"><span>02 · DAY</span><Sun size={17} /><h3>Make your case</h3><p>Discuss what happened and share suspicions. The town gets a short window to compare stories.</p></article>
+          <article className="how-to-phase"><span>03 · VOTE</span><Fingerprint size={17} /><h3>Choose or abstain</h3><p>Vote to eliminate a living player, or abstain. A tied vote eliminates nobody.</p></article>
+        </div>
+        <div className="how-to-roles"><span className="section-kicker">YOUR ROLE</span><div>{Object.entries(roleMeta).map(([key, details]) => {
+          const GuideIcon = details.icon
+          return <div className={`how-to-role role-${key}`} key={key}><GuideIcon size={15} /><strong>{details.label}</strong><span>{details.description}</span></div>
+        })}</div></div>
+        <div className="how-to-victory"><Shield size={17} /><p><strong>Town wins</strong> when every Mafia member is out. <strong>Mafia wins</strong> when they equal or outnumber the living town.</p></div>
+      </dialog>
 
       {!room ? (
         <section className="landing">

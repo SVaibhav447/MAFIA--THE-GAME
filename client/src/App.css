@@ -10,6 +10,8 @@
 .connection.is-online .connection-dot, .presence-dot.online, .chat-live span { background: #638c68; box-shadow: 0 0 0 3px rgba(99,140,104,.13); }
 .topbar-divider { height: 18px; width: 1px; background: var(--line); }
 .icon-button { width: 29px; height: 29px; display: grid; place-items: center; border: 0; background: transparent; color: #716f66; cursor: pointer; }
+.help-button { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 10px; border: 1px solid var(--line); background: transparent; color: #716f66; cursor: pointer; font: 9px var(--mono); }
+.help-button:hover { color: var(--red); border-color: var(--red); }
 .landing { width: min(1120px, calc(100% - 48px)); margin: 0 auto; padding: clamp(52px, 9vh, 104px) 0 26px; flex: 1; display: grid; grid-template-columns: 1fr; align-content: center; position: relative; }
 .landing::before { content: ''; position: absolute; z-index: 0; inset: 24px -8vw 56px; pointer-events: none; opacity: .22; background: repeating-linear-gradient(135deg, transparent 0 17px, rgba(70, 78, 63, .08) 17px 18px); mask-image: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent); }
 .landing-copy, .entry-panel { position: relative; z-index: 1; }
@@ -319,6 +321,32 @@
 .chronicle-static-entry { display: grid; grid-template-columns: 74px minmax(0, 1fr); align-items: baseline; gap: 12px; padding: 11px 4px; border-top: 1px solid var(--line); }
 .chronicle-static-entry time { color: #a19d91; font: 8px var(--mono); }
 .chronicle-static-entry p { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.6; }
+.how-to-dialog { width: min(650px, calc(100vw - 32px)); max-height: min(760px, calc(100dvh - 36px)); margin: auto; padding: 25px 28px 22px; overflow-y: auto; color: var(--ink); background: #fbf9f3; border: 1px solid #dbd5c9; box-shadow: 0 28px 90px rgba(0, 0, 0, .45); }
+.how-to-dialog::backdrop { background: rgba(4, 7, 5, .72); backdrop-filter: blur(4px); }
+.how-to-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.how-to-header h2 { margin: 6px 0 0; color: var(--ink); font: 500 30px/1.15 var(--serif); }
+.dialog-close { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--ink-soft); background: transparent; cursor: pointer; }
+.dialog-close:hover { color: var(--red); border-color: var(--red); }
+.how-to-lede { margin: 13px 0 21px; color: var(--ink-soft); font-size: 13px; line-height: 1.6; }
+.how-to-phases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.how-to-phase { min-width: 0; padding: 13px 12px 12px; border: 1px solid var(--line); background: rgba(128, 111, 80, .045); }
+.how-to-phase > span { color: #8d887c; font: 8px var(--mono); }
+.how-to-phase > svg { display: block; margin: 13px 0 7px; color: var(--red); }
+.how-to-phase h3 { margin: 0 0 5px; color: var(--ink); font: 500 16px var(--serif); }
+.how-to-phase p { margin: 0; color: var(--ink-soft); font-size: 10px; line-height: 1.55; }
+.how-to-roles { margin-top: 19px; }
+.how-to-roles > .section-kicker { display: block; margin-bottom: 8px; }
+.how-to-roles > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.how-to-role { min-width: 0; display: grid; grid-template-columns: 18px 78px minmax(0, 1fr); align-items: center; gap: 7px; padding: 8px; border-top: 1px solid var(--line); }
+.how-to-role > svg { color: var(--red); }
+.how-to-role strong { color: var(--ink); font-size: 10px; }
+.how-to-role > span { color: var(--ink-soft); font-size: 9px; line-height: 1.4; }
+.how-to-role.role-detective > svg { color: #596f9b; }.how-to-role.role-doctor > svg { color: var(--green); }.how-to-role.role-villager > svg { color: var(--gold); }
+.how-to-victory { display: flex; align-items: flex-start; gap: 10px; margin-top: 17px; padding: 12px; color: var(--ink-soft); background: rgba(128, 111, 80, .08); }
+.how-to-victory > svg { flex: 0 0 auto; color: var(--green); }
+.how-to-victory p { margin: 0; font-size: 10px; line-height: 1.6; }
+.how-to-victory strong { color: var(--ink); }
+@media (max-width: 600px) { .how-to-dialog { padding: 20px 17px 17px; }.how-to-phases { grid-template-columns: 1fr; }.how-to-phase { display: grid; grid-template-columns: 62px 20px minmax(0, 1fr); align-items: center; column-gap: 8px; }.how-to-phase > svg { grid-column: 2; grid-row: 1; margin: 0; }.how-to-phase h3 { grid-column: 3; grid-row: 1; }.how-to-phase p { grid-column: 1 / -1; margin-top: 8px; }.how-to-roles > div { grid-template-columns: 1fr; }.how-to-role { grid-template-columns: 20px 82px minmax(0, 1fr); } }
 @keyframes narrator-cycle { 0% { opacity: 0; } 12.5% { opacity: 1; } 87.5% { opacity: 1; } 100% { opacity: 0; } }
 .theme-night .abstain-button { color: #b2b0a3; border-color: #42473d; }
 .theme-night .abstain-button:hover { color: #e1a092; border-color: #b45a49; background: rgba(180, 90, 73, .1); }
@@ -332,4 +360,14 @@
 .theme-night .chronicle-static-entry { border-color: #383d33; }
 .theme-night .chronicle-static-entry time { color: #a3a193; }
 .theme-night .chronicle-static-entry p { color: #c4c0b4; }
+.theme-night .help-button { color: #aaa99d; border-color: #383d33; }
+.theme-night .help-button:hover { color: #e1a092; border-color: #b45a49; }
+.theme-night .how-to-dialog { color: #eee7d9; background: #1c201b; border-color: #3a3f35; }
+.theme-night .how-to-header h2, .theme-night .how-to-phase h3, .theme-night .how-to-role strong, .theme-night .how-to-victory strong { color: #eee7d9; }
+.theme-night .how-to-phase { background: #222720; border-color: #3a3f35; }
+.theme-night .how-to-phase p, .theme-night .how-to-lede, .theme-night .how-to-role > span, .theme-night .how-to-victory { color: #b2b0a3; }
+.theme-night .how-to-role { border-color: #383d33; }
+.theme-night .how-to-victory { background: #252b23; }
+.theme-night .dialog-close { color: #b2b0a3; border-color: #42473d; }
+.theme-night .dialog-close:hover { color: #e1a092; border-color: #b45a49; }
 @media (max-width: 760px) { .chronicle-list { min-height: 165px; }.chronicle-entry { padding-top: 11px; }.chronicle-entry.is-current p { font-size: 18px; }.chronicle-static-entry { grid-template-columns: 58px minmax(0, 1fr); gap: 8px; }.chronicle-static-entry p { font-size: 12px; } }
