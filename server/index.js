@@ -9,7 +9,7 @@ import Game from './models/Game.js'
 
 const app = express()
 const server = http.createServer(app)
-const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173'
+const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173' || 'https://mafia-the-game.onrender.com'
 const io = new Server(server, { cors: { origin: allowedOrigin, methods: ['GET', 'POST'] } })
 const rooms = new Map()
 const PORT = Number(process.env.PORT) || 3001
